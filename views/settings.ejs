@@ -1,0 +1,2137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= settings?.name %> - Staff Panel</title>
+  <link rel="icon" type="image/x-icon" href="<%= settings?.favicon %>">
+
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+  <style>
+    :root {
+      --accent-color: <%=accentColorHex %>;
+      --accent-rgb: <%=accentColorRgb %>;
+      --accent-dark: color-mix(in srgb, var(--accent-color) 70%, #000000);
+      --accent-light: color-mix(in srgb, var(--accent-color) 30%, #ffffff);
+
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #0f0f1a;
+      --bg-tertiary: #141420;
+      --bg-card: rgba(20, 20, 32, 0.8);
+      --bg-overlay: rgba(10, 10, 15, 0.95);
+
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+
+      --border-primary: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(var(--accent-rgb), 0.3);
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+      --shadow-accent: 0 0 20px rgba(var(--accent-rgb), 0.3);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 20% 80%, rgba(var(--accent-rgb), 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
+        linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        linear-gradient(45deg, transparent 48%, rgba(var(--accent-rgb), 0.01) 49%, rgba(var(--accent-rgb), 0.01) 51%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(var(--accent-rgb), 0.01) 49%, rgba(var(--accent-rgb), 0.01) 51%, transparent 52%);
+      background-size: 80px 80px;
+      pointer-events: none;
+      opacity: 0.4;
+      z-index: 0;
+    }
+
+    [x-cloak] {
+      display: none !important;
+    }
+
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(var(--accent-rgb), 0.1);
+      border-top: 3px solid var(--accent-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .main-container {
+      position: relative;
+      z-index: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .header-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .header-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.125rem;
+      margin-bottom: 2rem;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+      padding: 0.875rem 1.5rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tab-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.1), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .tab-button:hover::before {
+      left: 100%;
+    }
+
+    .tab-button:hover {
+      background: rgba(var(--accent-rgb), 0.05);
+      border-color: rgba(var(--accent-rgb), 0.15);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+      border-color: var(--accent-color);
+      color: white;
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.25);
+    }
+
+    .tab-button.active:hover {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+      transform: translateY(-1px);
+    }
+
+    .section-card {
+      background: var(--bg-overlay);
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .section-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+      opacity: 0.6;
+    }
+
+    .section-header {
+      padding: 1.5rem 2rem;
+      background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+      border-bottom: 1px solid var(--border-primary);
+      position: relative;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-title i {
+      color: var(--accent-color);
+    }
+
+    .section-description {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .section-content {
+      padding: 2rem;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-label {
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-label i {
+      color: var(--accent-color);
+      font-size: 0.75rem;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      transition: var(--transition-fast);
+      font-family: inherit;
+    }
+
+    .form-input:hover,
+    .form-select:hover,
+    .form-textarea:hover {
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 0.125rem rgba(var(--accent-rgb), 0.25);
+      outline: none;
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-input[type="color"] {
+      padding: 0.25rem;
+      height: 3rem;
+      cursor: pointer;
+    }
+
+    .form-input[type="file"] {
+      border: 2px dashed var(--border-primary);
+      background: rgba(var(--accent-rgb), 0.02);
+      cursor: pointer;
+    }
+
+    .form-input[type="file"]:hover {
+      border-color: var(--accent-color);
+      background: rgba(var(--accent-rgb), 0.05);
+    }
+
+    .form-help {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .form-help i {
+      color: var(--accent-color);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      transition: var(--transition-fast);
+      border-radius: 12px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--text-muted);
+      transition: var(--transition-fast);
+      border-radius: 50%;
+    }
+
+    input:checked+.toggle-slider {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+
+    input:checked+.toggle-slider:before {
+      transform: translateX(20px);
+      background: white;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, var(--bg-card), rgba(var(--accent-rgb), 0.02));
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-color), var(--accent-light));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.05) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(var(--accent-rgb), 0.3);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 30px rgba(var(--accent-rgb), 0.15);
+    }
+
+    .stat-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .stat-card:hover::after {
+      opacity: 1;
+    }
+
+    .stat-card:hover .stat-icon {
+      transform: scale(1.1) rotate(5deg);
+      color: var(--accent-light);
+    }
+
+    .stat-card:hover .stat-value {
+      transform: scale(1.05);
+      color: var(--accent-light);
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-color);
+      font-size: 1.25rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+    }
+
+    .stat-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      line-height: 1;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-feature-settings: 'tnum';
+    }
+
+    .stat-label {
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .stat-description {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.4;
+      transition: color 0.3s ease;
+    }
+
+    .stat-card:hover .stat-description {
+      color: var(--text-secondary);
+    }
+
+    .header-actions .btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-divider {
+      width: 2px;
+      background: linear-gradient(180deg, transparent, var(--border-primary), transparent);
+      margin: 0.5rem 0;
+      position: relative;
+    }
+
+    .tab-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 6px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
+    }
+
+    .stat-progress {
+      width: 100%;
+      height: 4px;
+      background: rgba(var(--accent-rgb), 0.1);
+      border-radius: 2px;
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+
+    .stat-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-color), var(--accent-light));
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: left;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+      padding: 0.875rem 1.5rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn:hover {
+      border-color: rgba(var(--accent-rgb), 0.2);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+      border-color: var(--accent-color);
+      color: white;
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.25);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.3);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-color: #ef4444;
+      color: white;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 16px 24px;
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 2000;
+      max-width: 400px;
+      backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .notification.success {
+      background: rgba(0, 255, 150, 0.1);
+      border: 1px solid rgba(0, 255, 150, 0.3);
+      color: #00ff96;
+      box-shadow: 0 8px 32px rgba(0, 255, 150, 0.2);
+    }
+
+    .notification.success::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #00ff96, transparent);
+      opacity: 0.6;
+    }
+
+    .notification.error {
+      background: rgba(255, 80, 80, 0.1);
+      border: 1px solid rgba(255, 80, 80, 0.3);
+      color: #ff8080;
+      box-shadow: 0 8px 32px rgba(255, 80, 80, 0.2);
+    }
+
+    .notification.error::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #ff8080, transparent);
+      opacity: 0.6;
+    }
+
+    .api-guide-section {
+      margin-top: 1.5rem;
+    }
+
+    .api-endpoint-box {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      font-family: 'Source Code Pro', monospace;
+      color: var(--accent-color);
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .api-info-box {
+      background: rgba(var(--accent-rgb), 0.05);
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .api-info-box code {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-family: 'Source Code Pro', monospace;
+      color: var(--accent-color);
+      font-size: 0.8rem;
+    }
+
+    .api-options-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr;
+    }
+
+    .api-option {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+    }
+
+    .api-option strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .api-code-block {
+      margin-top: 0.5rem;
+    }
+
+    .api-code-block code {
+      display: block;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-accent);
+      border-radius: 4px;
+      padding: 0.5rem;
+      font-family: 'Source Code Pro', monospace;
+      color: var(--accent-color);
+      font-size: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .api-code-block pre {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: 4px;
+      padding: 0.75rem;
+      font-family: 'Source Code Pro', monospace;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      overflow-x: auto;
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .api-code-example {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-sm);
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .api-code-example pre {
+      margin: 0;
+      padding: 1rem;
+      background: transparent;
+      border: none;
+      font-family: 'Source Code Pro', monospace;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.4;
+    }
+
+    .api-code-example code {
+      color: var(--text-secondary);
+      font-family: 'Source Code Pro', monospace;
+    }
+
+    .api-code-example span {
+      color: var(--accent-color);
+      font-weight: 500;
+    }
+
+    .api-error-table {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .error-row {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-primary);
+      align-items: center;
+    }
+
+    .error-row:last-child {
+      border-bottom: none;
+    }
+
+    .error-code {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'Source Code Pro', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 45px;
+    }
+
+    .error-desc {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 1rem;
+      }
+
+      .header-title {
+        font-size: 2rem;
+      }
+
+      .api-options-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .api-code-example pre {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+      }
+
+      .error-row {
+        grid-template-columns: 50px 1fr;
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+      }
+
+      .error-code {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+        min-width: 40px;
+      }
+
+      .nav-tabs {
+        margin-bottom: 2rem;
+      }
+
+      .tab-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      .section-content {
+        padding: 1.5rem;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .action-buttons {
+        justify-content: stretch;
+        flex-direction: column;
+      }
+
+      .btn {
+        justify-content: center;
+      }
+
+      .notification {
+        left: 16px;
+        right: 16px;
+        top: 140px;
+        transform: translateY(-100px);
+        max-width: none;
+      }
+
+      .notification.show {
+        transform: translateY(0);
+      }
+
+      .tools-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .header-actions .btn {
+        justify-content: center;
+        min-width: 200px;
+      }
+
+      .tab-divider {
+        display: none;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .stat-card {
+        padding: 1.5rem;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+      }
+
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card {
+        padding: 1rem;
+      }
+
+      .stat-value {
+        font-size: 1.75rem;
+      }
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: #f59e0b;
+      color: white;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-warning:hover {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .tool-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      transition: var(--transition-fast);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .tool-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(var(--accent-rgb), 0.3);
+      transform: translateY(-2px);
+    }
+
+    .tool-card:hover::before {
+      opacity: 1;
+    }
+
+    .tool-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .tool-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-color);
+      font-size: 1rem;
+    }
+
+    .tool-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .tool-description {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+      margin-bottom: 1.5rem;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+      border-radius: 4px;
+      border: 1px solid var(--border-primary);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, var(--accent-light), var(--accent-color));
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-spinner"></div>
+  </div>
+
+
+  <div x-data="staffPanel()" x-init="init()" x-cloak>
+    <div class="main-container">
+      <div class="header">
+        <h1 class="header-title">Staff Panel</h1>
+        <p class="header-subtitle">Manage your paste service configuration and monitor activity</p>
+
+        <div class="header-actions">
+          <a href="/" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Paste
+          </a>
+          <a href="/logout" class="btn btn-danger">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </a>
+        </div>
+
+        <div class="nav-tabs">
+          <button class="tab-button" :class="{ active: currentTab === 'overview' }" @click="switchTab('overview')">
+            <i class="fas fa-chart-line"></i>
+            Overview
+          </button>
+          <button class="tab-button" :class="{ active: currentTab === 'general' }" @click="switchTab('general')">
+            <i class="fas fa-cog"></i>
+            General
+          </button>
+          <button class="tab-button" :class="{ active: currentTab === 'security' }" @click="switchTab('security')">
+            <i class="fas fa-shield-alt"></i>
+            Security
+          </button>
+
+          <button class="tab-button" :class="{ active: currentTab === 'advanced' }" @click="switchTab('advanced')">
+            <i class="fas fa-wrench"></i>
+            Advanced
+          </button>
+        </div>
+      </div>
+
+      <div x-show="currentTab === 'overview'" class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Dashboard Overview
+          </div>
+          <div class="section-description">Monitor your paste service statistics and recent activity</div>
+        </div>
+        <div class="section-content">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-file-text"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.totalPastes">1,247</div>
+                <div class="stat-label">Total Pastes</div>
+                <div class="stat-description">All pastes ever created on this service</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-eye"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.totalViews">18,429</div>
+                <div class="stat-label">Total Views</div>
+                <div class="stat-description">Total views across all pastes</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-calendar-alt"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.pastesLast30Days">687</div>
+                <div class="stat-label">Last 30 Days</div>
+                <div class="stat-description">Recent paste creation activity</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-code"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.apiPastes">423</div>
+                <div class="stat-label">API Usage</div>
+                <div class="stat-description">Pastes created via API</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-hdd"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.storage">256MB</div>
+                <div class="stat-label">Storage Used</div>
+                <div class="stat-description">Total disk space consumed</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.averageViews">14.8</div>
+                <div class="stat-label">Avg Views</div>
+                <div class="stat-description">Average views per paste</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-fire"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.topPasteViews">2,847</div>
+                <div class="stat-label">Most Viewed</div>
+                <div class="stat-description">Highest view count on a single paste</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <i class="fas fa-clock"></i>
+                </div>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" x-text="stats.averageSize">12.3KB</div>
+                <div class="stat-label">Avg Paste Size</div>
+                <div class="stat-description">Average file size per paste</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">
+              <i class="fas fa-wrench"></i>
+              Admin Tools
+            </div>
+            <div class="tools-grid">
+              <div class="tool-card">
+                <div class="tool-header">
+                  <div class="tool-icon">
+                    <i class="fas fa-trash-alt"></i>
+                  </div>
+                  <div class="tool-title">Clear All Pastes</div>
+                </div>
+                <div class="tool-description">
+                  Permanently delete all pastes from the database and storage. This action cannot be undone.
+                </div>
+                <button class="btn btn-danger" @click="clearAllPastes()">
+                  <i class="fas fa-trash-alt"></i>
+                  Clear All Pastes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="currentTab === 'general'" class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <i class="fas fa-cog"></i>
+            General Settings
+          </div>
+          <div class="section-description">Configure basic site settings and appearance</div>
+        </div>
+        <div class="section-content">
+          <form @submit.prevent="saveGeneralSettings" enctype="multipart/form-data" class="form-grid">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-tag"></i>
+                  Website Name
+                </label>
+                <input class="form-input" type="text" x-model="settings.name" name="websiteName" placeholder="Plex Paste" required>
+                <div class="form-help">
+                  <i class="fas fa-info-circle"></i>
+                  Displayed in browser title and headers
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-palette"></i>
+                  Accent Color
+                </label>
+                <input class="form-input" type="color" x-model="settings.accentColor" name="accentColor">
+                <div class="form-help">
+                  <i class="fas fa-info-circle"></i>
+                  Primary theme color for the interface
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-image"></i>
+                  Logo Upload
+                </label>
+                <input class="form-input" type="file" name="logo" accept=".jpg,.png,.svg">
+                <div class="form-help">
+                  <i class="fas fa-info-circle"></i>
+                  Supported formats: JPG, PNG, SVG (Max 2MB)
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-star"></i>
+                  Favicon Upload
+                </label>
+                <input class="form-input" type="file" name="favicon" accept=".ico,.png">
+                <div class="form-help">
+                  <i class="fas fa-info-circle"></i>
+                  Supported formats: ICO, PNG (16x16 or 32x32)
+                </div>
+              </div>
+            </div>
+
+<div class="form-group">
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label">
+        <i class="fas fa-heading"></i>
+        SEO Title
+      </label>
+      <input class="form-input" type="text" x-model="settings.seoTitle" name="seoTitle" placeholder="Plex Paste - Modern Code & Text Sharing" maxlength="60">
+      <div class="form-help">
+        <i class="fas fa-info-circle"></i>
+        Title tag for search engines (recommended: 50-60 characters)
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <i class="fas fa-align-left"></i>
+        SEO Description
+      </label>
+      <textarea class="form-textarea" x-model="settings.seoDescription" name="seoDescription" rows="3" placeholder="A modern, secure paste service for sharing code and text with syntax highlighting, password protection, and API access." maxlength="160"></textarea>
+      <div class="form-help">
+        <i class="fas fa-info-circle"></i>
+        Meta description for search engines (recommended: 150-160 characters)
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <i class="fas fa-tags"></i>
+        SEO Keywords
+      </label>
+      <input class="form-input" type="text" x-model="settings.seoKeywords" name="seoKeywords" placeholder="paste, code sharing, text sharing, pastebin, syntax highlighting, secure">
+      <div class="form-help">
+        <i class="fas fa-info-circle"></i>
+        Comma-separated keywords for search engines (optional, use sparingly)
+      </div>
+    </div>
+  </div>
+</div>
+
+            <div class="action-buttons">
+              <button type="submit" class="btn btn-primary" :disabled="saving">
+                <i class="fas fa-save"></i>
+                <span x-text="saving ? 'Saving...' : 'Save Changes'"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div x-show="currentTab === 'security'" class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <i class="fas fa-shield-alt"></i>
+            Security & Rate Limiting
+          </div>
+          <div class="section-description">Configure security measures and rate limiting</div>
+        </div>
+        <div class="section-content">
+          <form @submit.prevent="saveSettings('security')" class="form-grid">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-clock"></i>
+                Web Rate Limiting
+              </label>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-hashtag"></i>
+                    Max Requests
+                  </label>
+                  <input class="form-input" type="number" x-model="settings.rateLimit" min="1" max="10000" placeholder="50">
+                  <div class="form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Maximum number of paste creation requests
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-stopwatch"></i>
+                    Time Window
+                  </label>
+                  <select class="form-select" x-model="settings.rateLimitWindow">
+                    <option value="1m">Per Minute</option>
+                    <option value="5m">Per 5 Minutes</option>
+                    <option value="15m">Per 15 Minutes</option>
+                    <option value="30m">Per 30 Minutes</option>
+                    <option value="1h">Per Hour</option>
+                    <option value="6h">Per 6 Hours</option>
+                    <option value="12h">Per 12 Hours</option>
+                    <option value="1d">Per Day</option>
+                  </select>
+                  <div class="form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Time period for rate limit reset
+                  </div>
+                </div>
+              </div>
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Limit how many pastes a single IP address can create & view within the specified time window.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-file-alt"></i>
+                Max Paste Size (MB)
+              </label>
+              <input class="form-input" type="number" x-model="settings.maxPasteSize" min="0.1" max="50" step="0.1" placeholder="10">
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Maximum file size allowed for individual pastes. Larger files consume more storage and bandwidth.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-code"></i>
+                API Access
+              </label>
+              <div class="toggle-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" :checked="settings.enableAPI" @change="settings.enableAPI = $event.target.checked">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span>Enable API for paste creation</span>
+              </div>
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Allow users to create pastes via API requests (POST). Useful for integrations with text editors, CLI tools, and automation scripts.
+              </div>
+            </div>
+
+            <div class="form-group" x-show="settings.enableAPI">
+              <label class="form-label">
+                <i class="fas fa-key"></i>
+                API Rate Limiting
+              </label>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-hashtag"></i>
+                    Max API Requests
+                  </label>
+                  <input class="form-input" type="number" x-model="settings.apiRateLimit" min="10" max="100000" placeholder="500">
+                  <div class="form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Maximum API requests allowed
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-stopwatch"></i>
+                    API Time Window
+                  </label>
+                  <select class="form-select" x-model="settings.apiRateLimitWindow">
+                    <option value="1m">Per Minute</option>
+                    <option value="5m">Per 5 Minutes</option>
+                    <option value="15m">Per 15 Minutes</option>
+                    <option value="30m">Per 30 Minutes</option>
+                    <option value="1h">Per Hour</option>
+                    <option value="6h">Per 6 Hours</option>
+                    <option value="12h">Per 12 Hours</option>
+                    <option value="1d">Per Day</option>
+                  </select>
+                  <div class="form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Time period for API rate limit reset
+                  </div>
+                </div>
+              </div>
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Separate rate limiting specifically for API requests. Generally higher than web limits since APIs are used for automation.
+              </div>
+            </div>
+
+            <div class="form-group" x-show="settings.enableAPI">
+              <label class="form-label">
+                <i class="fas fa-lock"></i>
+                API Key Protection
+              </label>
+              <div class="toggle-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" :checked="settings.requireApiKey" @change="settings.requireApiKey = $event.target.checked">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span>Require API key for all API requests</span>
+              </div>
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                When enabled, all API requests must include a valid API key for authorization.
+              </div>
+            </div>
+
+            <div class="form-group" x-show="settings.enableAPI && settings.requireApiKey">
+              <label class="form-label">
+                <i class="fas fa-key"></i>
+                Master API Key
+              </label>
+              <input class="form-input" type="text" x-model="settings.apiKey" placeholder="Enter your API key">
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Set the master API key for your application. This key will be required for all API requests. Use only alphanumeric characters and underscores.
+              </div>
+            </div>
+
+            <!-- Add this button after the API Key field in the security section -->
+            <div class="form-group" x-show="settings.enableAPI">
+              <button type="button" class="btn btn-warning" @click="showApiGuide = !showApiGuide">
+                <i class="fas fa-book"></i>
+                <span x-text="showApiGuide ? 'Hide API Usage Guide' : 'Show API Usage Guide'"></span>
+              </button>
+            </div>
+
+            <!-- Add this expandable section after the API button -->
+            <div x-show="settings.enableAPI && showApiGuide" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translateY(-10px)" x-transition:enter-end="opacity-100 transform translateY(0)" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 transform translateY(0)" x-transition:leave-end="opacity-0 transform translateY(-10px)" class="api-guide-section">
+
+              <div class="section-card" style="margin-top: 1.5rem;">
+                <div class="section-header">
+                  <div class="section-title">
+                    <i class="fas fa-code"></i>
+                    API Usage Guide
+                  </div>
+                  <div class="section-description">Learn how to integrate with the Paste API</div>
+                </div>
+
+                <div class="section-content">
+                  <div class="form-grid">
+
+                    <!-- API Endpoint -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fas fa-link"></i>
+                        API Endpoint
+                      </label>
+                      <div class="api-endpoint-box">
+                        <code>POST <span x-text="window.location.origin"></span>/documents</code>
+                      </div>
+                    </div>
+
+                    <!-- Authentication -->
+                    <div class="form-group" x-show="settings.requireApiKey">
+                      <label class="form-label">
+                        <i class="fas fa-key"></i>
+                        Authentication
+                      </label>
+                      <div class="api-info-box">
+                        Include your API key in the request headers:
+                        <br><br>
+                        <code>X-API-Key: YOUR_API_KEY</code>
+                        <br><br>
+                        Or as a query parameter:
+                        <br><br>
+                        <code>?apiKey=YOUR_API_KEY</code>
+                      </div>
+                    </div>
+
+                    <!-- Request Body -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fas fa-file-code"></i>
+                        Request Body Options
+                      </label>
+                      <div class="api-options-grid">
+                        <div class="api-option">
+                          <strong>Plain Text:</strong>
+                          <div class="api-code-block">
+                            <code>Content-Type: text/plain</code>
+                            <pre>Your paste content here...</pre>
+                          </div>
+                        </div>
+
+                        <div class="api-option">
+                          <strong>JSON Object:</strong>
+                          <div class="api-code-block">
+                            <code>Content-Type: application/json</code>
+                            <pre>{
+  "content": "Your paste content",
+  "password": "optional_password",
+  "maxViews": 10
+}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- JavaScript Example -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fab fa-js-square"></i>
+                        JavaScript Example
+                      </label>
+                      <div class="api-code-example">
+                        <pre><code>// Simple text paste
+const response = await fetch('<span x-text="window.location.origin"></span>/documents', {
+  method: 'POST',<span x-show="settings.requireApiKey">
+  headers: {
+    'X-API-Key': 'YOUR_API_KEY',
+    'Content-Type': 'text/plain'
+  },</span><span x-show="!settings.requireApiKey">
+  headers: {
+    'Content-Type': 'text/plain'
+  },</span>
+  body: 'Your paste content here'
+});
+
+const result = await response.json();
+console.log('Paste URL:', result.url);
+
+// Advanced paste with options
+const advancedResponse = await fetch('<span x-text="window.location.origin"></span>/documents', {
+  method: 'POST',<span x-show="settings.requireApiKey">
+  headers: {
+    'X-API-Key': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },</span><span x-show="!settings.requireApiKey">
+  headers: {
+    'Content-Type': 'application/json'
+  },</span>
+  body: JSON.stringify({
+    content: 'Your paste content',
+    password: 'secret123',      // Optional
+    maxViews: 5                 // Optional
+  })
+});
+
+const advancedResult = await advancedResponse.json();
+console.log('Protected paste:', advancedResult);</code></pre>
+                      </div>
+                    </div>
+
+                    <!-- cURL Example -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fas fa-terminal"></i>
+                        cURL Example
+                      </label>
+                      <div class="api-code-example">
+                        <pre><code># Simple paste
+curl -X POST <span x-text="window.location.origin"></span>/documents \<span x-show="settings.requireApiKey">
+  -H "X-API-Key: YOUR_API_KEY" \</span>
+  -H "Content-Type: text/plain" \
+  -d "Your paste content"
+
+# Advanced paste with JSON
+curl -X POST <span x-text="window.location.origin"></span>/documents \<span x-show="settings.requireApiKey">
+  -H "X-API-Key: YOUR_API_KEY" \</span>
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Your paste content",
+    "password": "secret123",
+    "maxViews": 10
+  }'</code></pre>
+                      </div>
+                    </div>
+
+                    <!-- Response Format -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fas fa-arrow-left"></i>
+                        Response Format
+                      </label>
+                      <div class="api-code-example">
+                        <pre><code>{
+  "key": "abc123def",
+  "url": "<span x-text="window.location.origin"></span>/abc123def",
+  "password_protected": true,  // Only if password was set
+  "max_views": 10             // Only if maxViews was set
+}</code></pre>
+                      </div>
+                    </div>
+
+                    <!-- Rate Limits -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Rate Limits
+                      </label>
+                      <div class="api-info-box">
+                        <strong>Current API Rate Limit:</strong>
+                        <br>
+                        <span x-text="settings.apiRateLimit"></span> requests per <span x-text="settings.apiRateLimitWindow.replace('m', ' minute').replace('h', ' hour').replace('d', ' day')"></span>
+                        <br><br>
+                        Rate limits are applied per IP address. Exceeded limits will return HTTP 429.
+                      </div>
+                    </div>
+
+                    <!-- Error Codes -->
+                    <!-- Replace the existing error codes section with this -->
+                    <div class="form-group">
+                      <label class="form-label">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error Response Messages
+                      </label>
+                      <div class="api-error-table">
+                        <div class="error-row">
+                          <span class="error-code">400</span>
+                          <span class="error-desc">NO_CONTENT - Request body is missing or invalid</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">400</span>
+                          <span class="error-desc">CONTENT_REQUIRED - Content is empty or only whitespace</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">400</span>
+                          <span class="error-desc">CONTENT_TOO_LARGE - Content exceeds maximum size limit</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">400</span>
+                          <span class="error-desc">INVALID_MAX_VIEWS - maxViews must be a positive integer</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">400</span>
+                          <span class="error-desc">INVALID_PASSWORD_FORMAT - Password must be a string</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">401</span>
+                          <span class="error-desc">Valid API key required - Missing or invalid API key</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">403</span>
+                          <span class="error-desc">API_DISABLED - API access is currently disabled</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">429</span>
+                          <span class="error-desc">Rate limit exceeded - Too many requests, try again later</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">500</span>
+                          <span class="error-desc">SLUG_GENERATION_FAILED - Failed to generate unique URL</span>
+                        </div>
+                        <div class="error-row">
+                          <span class="error-code">500</span>
+                          <span class="error-desc">INTERNAL_ERROR - Server error occurred</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button type="submit" class="btn btn-primary" :disabled="saving">
+                <i class="fas fa-save"></i>
+                <span x-text="saving ? 'Saving...' : 'Save Security Settings'"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+
+      <div x-show="currentTab === 'advanced'" class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <i class="fas fa-wrench"></i>
+            Advanced Configuration
+          </div>
+          <div class="section-description">Advanced settings for paste expiration, syntax highlighting, and URL generation</div>
+        </div>
+        <div class="section-content">
+          <form @submit.prevent="saveSettings('advanced')" class="form-grid">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-trash-alt"></i>
+                Inactive Paste Auto-Delete
+              </label>
+              <select class="form-select" x-model="settings.inactiveDeleteAfter">
+                <option value="never">Never delete inactive pastes</option>
+                <option value="30d">Delete after 30 days of inactivity</option>
+                <option value="90d">Delete after 90 days of inactivity</option>
+                <option value="6m">Delete after 6 months of inactivity</option>
+                <option value="1y">Delete after 1 year of inactivity</option>
+                <option value="2y">Delete after 2 years of inactivity</option>
+              </select>
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Automatically delete pastes that haven't been viewed in the specified time period. Helps manage storage space and removes unused content. "Inactive" means the paste hasn't been accessed or viewed.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-code"></i>
+                Syntax Highlighting
+              </label>
+              <div class="toggle-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" :checked="settings.enableSyntaxHighlighting" @change="settings.enableSyntaxHighlighting = $event.target.checked">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span>Enable syntax highlighting for code</span>
+              </div>
+              <div class="form-help">
+                <i class="fas fa-info-circle"></i>
+                Automatically detect programming languages and apply syntax highlighting to make code more readable. Improves user experience for developers.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-link"></i>
+                URL Slug Configuration
+              </label>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-ruler"></i>
+                    Slug Length
+                  </label>
+                  <input type="number" class="form-input" x-model="settings.slugLength" min="4" max="20" placeholder="8">
+                  <div class="form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Length of the random URL identifier (4-20 characters)
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-font"></i>
+                    Character Set
+                  </label>
+                  <select class="form-select" x-model="settings.slugCharacterSet">
+                    <option value="alphanumeric">Letters and Numbers (a-z, A-Z, 0-9)</option>
+                    <option value="lowercase">Lowercase Only (a-z, 0-9)</option>
+                    <option value="numbers">Numbers Only (0-9)</option>
+                    <option value="letters">Letters Only (a-z, A-Z)</option>
+                    <option value="hex">Hexadecimal (0-9, a-f)</option>
+                  </select>
+                  <div class="form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Character types used in paste URLs
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-eye"></i>
+                  Preview Format
+                </label>
+                <div class="form-input" style="background: var(--bg-secondary); font-family: 'Source Code Pro', monospace;">
+                  <span x-text="generateSlugPreview()"></span>
+                </div>
+                <div class="form-help">
+                  <i class="fas fa-info-circle"></i>
+                  Example of how paste URLs will look with current settings
+                </div>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button type="submit" class="btn btn-primary" :disabled="saving">
+                <i class="fas fa-save"></i>
+                <span x-text="saving ? 'Saving...' : 'Save Advanced Settings'"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="notification.message" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translateX(-50%) translateY(-100px)" x-transition:enter-end="opacity-100 transform translateX(-50%) translateY(0)" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 transform translateX(-50%) translateY(0)" x-transition:leave-end="opacity-0 transform translateX(-50%) translateY(-100px)" :class="['notification', 'show', notification.type]" x-cloak x-text="notification.message">
+    </div>
+
+    <script>
+      function staffPanel() {
+        return {
+          currentTab: 'overview',
+          saving: false,
+          showApiGuide: false,
+          notification: {
+            show: false,
+            type: '',
+            message: ''
+          },
+          stats: {
+            totalPastes: 0,
+            totalViews: 0,
+            pastesLast30Days: 0,
+            apiPastes: 0,
+            storage: '0MB',
+            averageViews: 0,
+            topPasteViews: 0,
+            averageSize: '0KB'
+          },
+settings: {
+    name: '<%= settings?.name || "" %>',
+    accentColor: '<%= settings?.accentColor || "#00d4ff" %>',
+    seoTitle: '<%= settings?.seoTitle || "" %>',
+    seoDescription: '<%= settings?.seoDescription || "" %>',
+    seoKeywords: '<%= settings?.seoKeywords || "" %>',
+    rateLimit: <%= settings?.rateLimit || 50 %>,
+    rateLimitWindow: '<%= settings?.rateLimitWindow || "1h" %>',
+    maxPasteSize: <%= settings?.maxPasteSize || 10 %>,
+    enableAPI: <%= settings?.enableAPI ? 'true' : 'false' %>,
+    apiRateLimit: <%= settings?.apiRateLimit || 500 %>,
+    apiRateLimitWindow: '<%= settings?.apiRateLimitWindow || "1h" %>',
+    requireApiKey: <%= settings?.requireApiKey ? 'true' : 'false' %>,
+    apiKey: '<%= settings?.apiKey || "" %>',
+    inactiveDeleteAfter: '<%= settings?.inactiveDeleteAfter || "never" %>',
+    enableSyntaxHighlighting: <%= settings?.enableSyntaxHighlighting ? 'true' : 'false' %>,
+    slugLength: <%= settings?.slugLength || 8 %>,
+    slugCharacterSet: '<%= settings?.slugCharacterSet || "alphanumeric" %>'
+},
+
+          init() {
+            this.loadStats();
+            this.initializeTab();
+          },
+
+          initializeTab() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            if (tab && ['overview', 'general', 'security', 'advanced'].includes(tab)) {
+              this.currentTab = tab;
+            }
+          },
+
+          switchTab(tab) {
+            this.currentTab = tab;
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tab);
+            window.history.replaceState({}, '', url);
+          },
+
+          async loadStats() {
+            try {
+              const response = await fetch('/api/stats');
+              if (response.ok) {
+                const data = await response.json();
+
+                this.stats = {
+                  totalPastes: this.formatNumber(data.totalPastes || 0),
+                  totalViews: this.formatNumber(data.totalViews || 0),
+                  pastesLast30Days: this.formatNumber(data.pastesLast30Days || 0),
+                  apiPastes: this.formatNumber(data.apiPastes || 0),
+                  storage: data.storage || '0MB',
+                  averageViews: parseFloat(data.averageViews || 0).toFixed(1),
+                  topPasteViews: this.formatNumber(data.topPasteViews || 0),
+                  averageSize: data.averageSize || '0KB'
+                };
+
+              } else {
+                console.error('Failed to load stats:', response.status);
+                this.showNotification('Failed to load statistics', 'error');
+              }
+            } catch (error) {
+              console.error('Error loading stats:', error);
+              this.showNotification('Error loading statistics', 'error');
+            }
+          },
+
+          formatNumber(num) {
+            const absNum = Math.abs(num);
+
+            if (absNum >= 1e12) {
+              return (num / 1e12).toFixed(1) + 'T';
+            } else if (absNum >= 1e9) {
+              return (num / 1e9).toFixed(1) + 'B';
+            } else if (absNum >= 1e6) {
+              return (num / 1e6).toFixed(1) + 'M';
+            } else if (absNum >= 1e3) {
+              return (num / 1e3).toFixed(1) + 'K';
+            }
+            return num.toLocaleString();
+          },
+
+          async saveGeneralSettings(event) {
+            this.saving = true;
+
+            try {
+              const formData = new FormData(event.target);
+
+              const response = await fetch('/staff/settings', {
+                method: 'POST',
+                body: formData
+              });
+
+              if (response.ok) {
+                this.showNotification('Settings saved successfully!', 'success');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } else {
+                this.showNotification('Failed to save settings.', 'error');
+                this.saving = false;
+              }
+            } catch (error) {
+              console.error('Error saving settings:', error);
+              this.showNotification('Network error occurred.', 'error');
+              this.saving = false;
+            }
+          },
+
+          async saveSettings(section) {
+            this.saving = true;
+
+            try {
+              const response = await fetch('/staff/settings', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  section,
+                  settings: this.settings
+                })
+              });
+
+              if (response.ok) {
+                this.showNotification('Settings saved successfully!', 'success');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } else {
+                this.showNotification('Failed to save settings.', 'error');
+                this.saving = false;
+              }
+            } catch (error) {
+              console.error('Error saving settings:', error);
+              this.showNotification('Network error occurred.', 'error');
+              this.saving = false;
+            }
+          },
+
+          async clearAllPastes() {
+            if (!confirm('Are you sure you want to delete ALL pastes? This action cannot be undone!')) {
+              return;
+            }
+
+            try {
+              const response = await fetch('/staff/clear-all-pastes', {
+                method: 'DELETE'
+              });
+
+              if (response.ok) {
+                this.showNotification('All pastes have been deleted.', 'success');
+                setTimeout(() => {
+                  this.loadStats();
+                }, 1000);
+              } else {
+                this.showNotification('Failed to clear pastes.', 'error');
+              }
+            } catch (error) {
+              console.error('Error clearing pastes:', error);
+              this.showNotification('Network error occurred.', 'error');
+            }
+          },
+
+          showNotification(message, type) {
+            this.notification = {
+              message,
+              type
+            };
+            setTimeout(() => {
+              this.notification = {
+                message: '',
+                type: ''
+              };
+            }, 4000);
+          },
+
+          formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          },
+
+          generateSlugPreview() {
+            const sets = {
+              'alphanumeric': 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+              'lowercase': 'abcdefghijklmnopqrstuvwxyz0123456789',
+              'numbers': '0123456789',
+              'letters': 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+              'hex': '0123456789abcdef'
+            };
+
+            const chars = sets[this.settings.slugCharacterSet] || sets.alphanumeric;
+            const length = parseInt(this.settings.slugLength) || 8;
+
+            let result = '';
+            for (let i = 0; i < length; i++) {
+              result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            return `${window.location.origin}/${result}`;
+          }
+        }
+      }
+      document.addEventListener('alpine:init', () => {
+        setTimeout(() => {
+          document.getElementById('loadingScreen').style.display = 'none';
+          document.body.classList.add('alpine-loaded');
+        }, 400);
+      });
+    </script>
+</body>
+
+</html>
